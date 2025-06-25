@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bow Game by PinzyOffc</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; overflow: hidden; font-family: 'Segoe UI', sans-serif; }
+    body {
+      background: #000;
+      color: #fff;
+    }
+    video.bg-video {
+      position: fixed;
+      right: 0;
+      bottom: 0;
+      min-width: 100%;
+      min-height: 100%;
+      z-index: -1;
+      object-fit: cover;
+    }
+    #gameCanvas {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100vw;
+      height: 100vh;
+    }
+    #hud {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      color: white;
+      z-index: 2;
+    }
+    #hud h1 {
+      font-size: 20px;
+    }
+    #scoreDisplay {
+      margin-top: 10px;
+      font-size: 18px;
+    }
+    #shop {
+      position: absolute;
+      right: 10px;
+      top: 10px;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 10px;
+      border-radius: 10px;
+    }
+    .bow-item {
+      margin-bottom: 10px;
+      cursor: pointer;
+    }
+    .bow-item:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+    .mantapText {
+      position: absolute;
+      top: 40%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 80px;
+      font-weight: bold;
+      color: yellow;
+      display: none;
+      z-index: 3;
+    }
+  </style>
+</head>
+<body>
+  <video autoplay muted loop class="bg-video">
+    <source src="https://cdn.pixabay.com/video/2017/12/04/18621-244139538_large.mp4" type="video/mp4">
+  </video>
+
+  <div id="hud">
+    <h1>𝐁𝐲 𝐏𝐢𝐧𝐳𝐲𝐎𝐟𝐟𝐜</h1>
+    <div id="scoreDisplay">Score: 0</div>
+  </div>
+
+  <div id="shop"></div>
+  <canvas id="gameCanvas"></canvas>
+  <div class="mantapText" id="mantapText">MANTAP</div>
+
+  <audio id="shootSound" src="https://cdn.pixabay.com/audio/2022/03/15/audio_73b2cd6e62.mp3"></audio>
+  <audio id="bgMusic" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_dfb1db5301.mp3?filename=epic-inspiring-hip-hop-11315.mp3" autoplay loop></audio>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    let score = parseInt(localStorage.getItem("score") || "0");
+    const scoreDisplay = document.getElementById("scoreDisplay");
+    const shootSound = document.getElementById("shootSound");
+    const mantapText = document.getElementById("mantapText");
+
+    let selectedSkin = localStorage.getItem("selectedSkin") || "default";
+    const skins = {
+      default: { name: "Default Bow", color: "white", price: 0 },
+      fire: { name: "Fire Bow", color: "red", price: 10 },
+      ice: { name: "Ice Bow", color: "cyan", price: 20 },
+      neon: { name: "Neon Bow", color: "magenta", price: 30 },
+    };
+
+    const stickman = {
+      x: 100,
+      y: canvas.height - 200,
+    };
+
+    const target = {
+      x: canvas.width - 100,
+      y: Math.random() * (canvas.height - 200) + 100,
+      radius: 50
+    };
+
+    function drawStickman() {
+      ctx.fillStyle = "white";
+      ctx.beginPath();
+      ctx.arc(stickman.x, stickman.y - 60, 20, 0, Math.PI * 2); // head
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(stickman.x, stickman.y - 40);
+      ctx.lineTo(stickman.x, stickman.y + 40);
+      ctx.moveTo(stickman.x - 20, stickman.y);
+      ctx.lineTo(stickman.x + 20, stickman.y);
+      ctx.moveTo(stickman.x, stickman.y + 40);
+      ctx.lineTo(stickman.x - 20, stickman.y + 80);
+      ctx.moveTo(stickman.x, stickman.y + 40);
+      ctx.lineTo(stickman.x + 20, stickman.y + 80);
+      ctx.stroke();
+    }
+
+    function drawTarget() {
+      ctx.fillStyle = "white";
+      ctx.beginPath();
+      ctx.arc(target.x, target.y, target.radius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    function shootArrow() {
+      shootSound.play();
+      const dx = target.x - stickman.x;
+      const dy = target.y - stickman.y;
+      const angle = Math.atan2(dy, dx);
+      const arrow = { x: stickman.x, y: stickman.y, angle, speed: 10, color: skins[selectedSkin].color };
+
+      const interval = setInterval(() => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawStickman();
+        drawTarget();
+        arrow.x += Math.cos(arrow.angle) * arrow.speed;
+        arrow.y += Math.sin(arrow.angle) * arrow.speed;
+        ctx.strokeStyle = arrow.color;
+        ctx.beginPath();
+        ctx.moveTo(arrow.x, arrow.y);
+        ctx.lineTo(arrow.x - 20 * Math.cos(arrow.angle), arrow.y - 20 * Math.sin(arrow.angle));
+        ctx.stroke();
+
+        const dist = Math.hypot(target.x - arrow.x, target.y - arrow.y);
+        if (dist < target.radius) {
+          score++;
+          localStorage.setItem("score", score);
+          scoreDisplay.textContent = `Score: ${score}`;
+          mantapText.style.display = "block";
+          setTimeout(() => mantapText.style.display = "none", 800);
+          target.y = Math.random() * (canvas.height - 200) + 100;
+          clearInterval(interval);
+        }
+      }, 16);
+    }
+
+    function drawShop() {
+      const shop = document.getElementById("shop");
+      shop.innerHTML = "<h3>🎯 Shop</h3>";
+      for (let key in skins) {
+        const item = skins[key];
+        const div = document.createElement("div");
+        div.className = "bow-item";
+        div.textContent = `${item.name} - ${item.price} pts`;
+        div.style.color = item.color;
+        div.onclick = () => {
+          if (score >= item.price) {
+            selectedSkin = key;
+            localStorage.setItem("selectedSkin", key);
+          }
+        };
+        shop.appendChild(div);
+      }
+    }
+
+    canvas.addEventListener("click", shootArrow);
+
+    function gameLoop() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawStickman();
+      drawTarget();
+      requestAnimationFrame(gameLoop);
+    }
+
+    drawShop();
+    scoreDisplay.textContent = `Score: ${score}`;
+    gameLoop();
+  </script>
+</body>
+</html>
